@@ -16,7 +16,7 @@ const authentication = (config) => {
   };
   return {
     oauth2: {
-      label: config.label,
+      label: config.label || "OAuth",
       parameters: config.scope ? { scope: [config.scope] } : {},
       strategy: new OAuth2Strategy(
         params,
@@ -34,6 +34,7 @@ const authentication = (config) => {
               email,
             }
           ).then((u) => {
+            if (!u) return cb(null, false);
             return cb(null, u.session_object);
           });
         }
