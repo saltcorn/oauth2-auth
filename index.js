@@ -14,31 +14,53 @@ const authentication = (config) => {
     authorizationURL: config.authorizationURL || "noauthurl",
     tokenURL: config.tokenURL || "notokenurl",
   };
+  const strategy = new OAuth2Strategy(params, function (
+    token,
+    tokenSecret,
+    profile,
+    cb
+  ) {
+    //console.log(profile);
+    let email = "";
+    if (profile._json && profile._json.email) email = profile._json.email;
+    else if (profile.emails && profile.emails.length)
+      email = profile.emails[0].value;
+    User.findOrCreateByAttribute("oauth2Id", profile[config.id_key || "id"], {
+      email,
+    }).then((u) => {
+      if (!u) return cb(null, false);
+      return cb(null, u.session_object);
+    });
+  });
+  /*
+    call the 'userInfoURL' endpoint to get the email
+    When it fails then the user has to enter an email on its own
+  */
+  strategy.userProfile = function (accessToken, done) {
+    if (!config.userInfoURL) return done(null, {});
+    else {
+      strategy._oauth2.get(
+        config.userInfoURL,
+        accessToken,
+        (err, body, res) => {
+          if (err) return done(null, {});
+          else
+            try {
+              const profile = JSON.parse(body);
+              const idKey = config.id_key || "id";
+              return done(null, { _json: profile, [idKey]: profile[idKey] });
+            } catch (e) {
+              return done(null, {});
+            }
+        }
+      );
+    }
+  };
   return {
     oauth2: {
       label: config.label || "OAuth",
       parameters: config.scope ? { scope: [config.scope] } : {},
-      strategy: new OAuth2Strategy(
-        params,
-
-        function (token, tokenSecret, profile, cb) {
-          //console.log(profile);
-          let email = "";
-          if (profile._json && profile._json.email) email = profile._json.email;
-          else if (profile.emails && profile.emails.length)
-            email = profile.emails[0].value;
-          User.findOrCreateByAttribute(
-            "oauth2Id",
-            profile[config.id_key || "id"],
-            {
-              email,
-            }
-          ).then((u) => {
-            if (!u) return cb(null, false);
-            return cb(null, u.session_object);
-          });
-        }
-      ),
+      strategy: strategy,
     },
   };
 };
@@ -92,6 +114,11 @@ const configuration_workflow = () => {
                 label: "Token URL",
                 type: "String",
                 required: true,
+              },
+              {
+                name: "userInfoURL",
+                label: "User info URL",
+                type: "String",
               },
               {
                 name: "scope",
