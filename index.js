@@ -59,6 +59,7 @@ const authentication = (config) => {
   return {
     oauth2: {
       label: config.label || "OAuth",
+      setsUserAttribute: "oauth2Id",
       parameters: config.scope ? { scope: [config.scope] } : {},
       strategy: strategy,
     },
