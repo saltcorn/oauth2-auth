@@ -44,6 +44,8 @@ const authentication = (config) => {
         config.userInfoURL,
         accessToken,
         (err, body, res) => {
+          if (getState().log)
+            getState().log(5, `OAuth2 get err=${err} body=${body}`);
           if (err) return done(null, {});
           else
             try {
