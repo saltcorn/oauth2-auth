@@ -20,7 +20,8 @@ const authentication = (config) => {
     profile,
     cb
   ) {
-    //console.log(profile);
+    if (getState().log)
+      getState().log(4, `OAuth2 profile ${JSON.stringify(profile)}`);
     let email = "";
     if (profile._json && profile._json.email) email = profile._json.email;
     else if (profile.emails && profile.emails.length)
