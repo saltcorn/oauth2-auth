@@ -45,7 +45,10 @@ const authentication = (config) => {
         accessToken,
         (err, body, res) => {
           if (getState().log)
-            getState().log(5, `OAuth2 get err=${err} body=${body}`);
+            getState().log(
+              5,
+              `OAuth2 get err=${JSON.stringify(err)} body=${body}`
+            );
           if (err) return done(null, {});
           else
             try {
