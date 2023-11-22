@@ -33,6 +33,9 @@ const authentication = (config) => {
       return cb(null, u.session_object);
     });
   });
+  strategy._oauth2.useAuthorizationHeaderforGET(
+    config.access_token_send_mode === "header"
+  );
   /*
     call the 'userInfoURL' endpoint to get the email
     When it fails then the user has to enter an email on its own
@@ -139,6 +142,18 @@ const configuration_workflow = () => {
                 sublabel:
                   "A key in the profile object to a unique user identifier",
                 default: "id",
+              },
+              {
+                name: "access_token_send_mode",
+                label: "User info access token send mode",
+                sublabel:
+                  "Whether to call the 'Userinfo endpoint' with the access token as a header or query parameter",
+                type: "String",
+                required: true,
+                attributes: {
+                  options: ["header", "query"],
+                },
+                default: "header",
               },
             ],
           }),
