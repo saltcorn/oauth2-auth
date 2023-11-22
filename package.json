@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/oauth2-auth",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Authentication with any OAuth 2.0 provider",
   "main": "index.js",
   "dependencies": {
