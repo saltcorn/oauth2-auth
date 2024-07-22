@@ -2,8 +2,9 @@ const OAuth2Strategy = require("passport-oauth2").Strategy;
 const User = require("@saltcorn/data/models/user");
 const Workflow = require("@saltcorn/data/models/workflow");
 const Form = require("@saltcorn/data/models/form");
+const db = require("@saltcorn/data/db");
 
-const { getState } = require("@saltcorn/data/db/state");
+const { getState, features } = require("@saltcorn/data/db/state");
 
 const authentication = (config) => {
   const cfg_base_url = getState().getConfig("base_url");
@@ -16,7 +17,7 @@ const authentication = (config) => {
   };
   const strategy = new OAuth2Strategy(params, function (
     token,
-    tokenSecret,
+    refreshToken,
     profile,
     cb
   ) {
@@ -69,8 +70,28 @@ const authentication = (config) => {
     oauth2: {
       label: config.label || "OAuth",
       setsUserAttribute: "oauth2Id",
-      parameters: config.scope ? { scope: [config.scope] } : {},
+      parameters: features.dynamic_auth_parameters
+        ? () => {
+            const result = config.scope ? { scope: [config.scope] } : {};
+            const tenant = db.getTenantSchema();
+            if (
+              db.connectObj?.multi_tenant &&
+              config.share_on_subdomains &&
+              tenant !== db.connectObj.default_schema
+            ) {
+              // use the base_url of the tenant for the callback
+              const cfg_base_url = getState().getConfig("base_url");
+              result.callbackURL = `${addSlash(
+                cfg_base_url
+              )}auth/callback/oauth2`;
+            }
+            return result;
+          }
+        : config.scope
+        ? { scope: [config.scope] }
+        : {},
       strategy: strategy,
+      shareWithTenants: config.share_on_subdomains,
     },
   };
 };
@@ -155,6 +176,20 @@ const configuration_workflow = () => {
                 },
                 default: "header",
               },
+              ...[
+                {
+                  name: "share_on_subdomains",
+                  label: "Share on subdomains",
+                  type: "Bool",
+                  sublabel:
+                    "Share this login option with all subdomains of the current tenant",
+                  default: false,
+                },
+              ].filter(
+                (f) =>
+                  db.connectObj?.multi_tenant &&
+                  features.dynamic_auth_parameters
+              ),
             ],
           }),
       },
